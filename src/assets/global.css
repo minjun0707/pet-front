@@ -1,0 +1,12 @@
+:root {
+    --color-primary: #f4acb7;
+    --color-secondary: #9d8189;
+    --color-accent1: #ffcad4;
+    --color-accent2: #ffe5d9;
+    --color-accent3: #d8e2dc;
+  }
+  
+  body {
+    font-family: 'Nanum Square Round', sans-serif;
+  }
+  
