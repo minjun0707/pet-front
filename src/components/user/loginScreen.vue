@@ -43,8 +43,11 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useUserStore } from '@/stores/userStore';
+import api from '@/api/axios'; // ✅ Axios 사용
 
 const router = useRouter();
+const userStore = useUserStore();
 
 // 애니메이션을 위한 변수
 const showFirstLine = ref(false);
@@ -52,9 +55,9 @@ const showButton = ref(false);
 const showSignup = ref(false);
 const isFading = ref(false); // 페이드아웃 상태
 
-// 사용자 입력 데이터
-const email = ref('');
-const password = ref('');
+// ✅ 사용자 입력 데이터 (기본값 설정)
+const email = ref('kt2025@kt.com');
+const password = ref('kt2025@@');
 
 onMounted(() => {
   setTimeout(() => { showFirstLine.value = true; }, 1000);
@@ -62,27 +65,51 @@ onMounted(() => {
   setTimeout(() => { showSignup.value = true; }, 2500);
 });
 
-const login = () => {
+const login = async () => {
   if (!email.value || !password.value) {
     alert("이메일과 비밀번호를 모두 입력해주세요!");
     return;
   }
-  
-  console.log('로그인 시도:', email.value);
-  
-  // 페이드아웃 효과 적용
-  isFading.value = true;
 
-  // 애니메이션 후 라우팅 (0.5초 후)
-  setTimeout(() => {
-    router.push('/home');
-  }, 1500);
+  try {
+    const response = await api.post('/users/login', {
+      email: email.value,
+      password: password.value
+    });
+
+    if (response.data.status) {
+      const userId = response.data.result.data.userId; 
+      const name = response.data.result.data.name;
+      const accessToken = response.data.result.data.accessToken;
+      
+      console.log(response.data.result)
+      console.log("userId"+ response.data.result.data.userId);
+      console.log("name" + response.data.result.data.name);
+      console.log("token" + response.data.result.data.token);
+
+      // ✅ Pinia 상태 업데이트 (userId, name, token 개별 저장)
+      userStore.setUser(userId, name, accessToken);
+
+
+      // ✅ 페이드아웃 효과 적용 후 홈으로 이동
+      isFading.value = true;
+      setTimeout(() => {
+        router.push('/home');
+      }, 1500);
+    } else {
+      alert('로그인 실패: ' + response.data.message);
+    }
+  } catch (error) {
+    console.error('로그인 오류:', error);
+    alert('서버 오류');
+  }
 };
 
 const goToSignUp = () => {
   router.push('/signup');
 };
 </script>
+
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Nanum+Square+Round:wght@400;700&display=swap');

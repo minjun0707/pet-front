@@ -13,13 +13,23 @@ import PetsitterEdit from '@/components/petsitter/petsitterEdit.vue';
 import BannerProducts from '@/components/bannerProductsScreen.vue';
 import ProductsScreen from '@/components/productsScreen.vue';
 import ViewPetProfile from '@/components/pet/viewPetProfile.vue';
-
+import EditPetProfile from '@/components/pet/editPetProfile.vue'; 
+import CodeManagemnet from '@/components/codeMangement.vue'
+import PaymentScreen from '@/components/petsitter/paymentScreen.vue';
 const routes = [
   {
     path: '/',
     name: 'welcome',
     component: WelcomeScreen
   },
+  { path: '/editPetProfile/:id', 
+    name: 'editPetProfile', 
+    component: EditPetProfile 
+  },
+  { path: '/editProfileScreen',
+    name: 'editProfileScreen',
+    component: EditProfileScreen
+  },  
   {
     path: '/signup',
     name: 'signUp',
@@ -64,6 +74,12 @@ const routes = [
       },
 
       {
+        path: 'payment', // 기본 메인 화면
+        name: 'payment',
+        component: PaymentScreen
+      },
+
+      {
         path: 'edit-profile',
         name: 'editProfile',
         component: EditProfileScreen
@@ -87,6 +103,11 @@ const routes = [
         path: 'products',
         name: 'Products',
         component: ProductsScreen
+      },
+      {
+        path: 'codeManagement',
+        name: 'codeManagement',
+        component: CodeManagemnet
       }
     ]
   }

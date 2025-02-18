@@ -2,7 +2,7 @@
     <div>
       <button @click="onPayment">결제하기</button>
     </div>
-  </template>
+</template>
   
   <script setup>
   const onPayment = () => {

@@ -1,39 +1,54 @@
 <template>
   <div class="side-menu">
+    <!-- ✅ 반려동물 용품 (항상 보이는 메뉴) -->
     <div class="menu-group">
       <div class="menu-title" @click="goToProduct">반려동물 용품</div>
     </div>
 
-    <div class="menu-group">
-      <div class="menu-title" @click="toggleMenu('petManagement')">
-        반려동물 관리
-        <span class="dropdown-arrow" :class="{ 'rotated': openMenus.petManagement }">▶</span>
+    <!-- ✅ 로그인한 경우에만 보이는 메뉴 -->
+    <div v-if="isLoggedIn">
+      <!-- 🔹 반려동물 관리 -->
+      <div class="menu-group">
+        <div class="menu-title" @click="toggleMenu('petManagement')">
+          반려동물 관리
+          <span class="dropdown-arrow" :class="{ 'rotated': openMenus.petManagement }">▶</span>
+        </div>
+        <div class="submenu" v-show="openMenus.petManagement">
+          <router-link to="/myPetProfile" class="submenu-item">반려동물 조회</router-link>
+          <router-link to="/petProfileRegister" class="submenu-item">반려동물 등록</router-link>
+        </div>
       </div>
-      <div class="submenu" v-show="openMenus.petManagement">
-        <router-link to="/myPetProfile" class="submenu-item">반려동물 조회</router-link>
-        <router-link to="/petProfileRegister" class="submenu-item">반려동물 등록</router-link>
-      </div>
-    </div>
 
-    <div class="menu-group">
-      <div class="menu-title" @click="toggleMenu('petSitter')">
-        펫시터 서비스
-        <span class="dropdown-arrow" :class="{ 'rotated': openMenus.petSitter }">▶</span>
+      <!-- 🔹 펫시터 서비스 -->
+      <div class="menu-group">
+        <div class="menu-title" @click="toggleMenu('petSitter')">
+          펫시터 서비스
+          <span class="dropdown-arrow" :class="{ 'rotated': openMenus.petSitter }">▶</span>
+        </div>
+        <div class="submenu" v-show="openMenus.petSitter">
+          <router-link to="/home/petsitter/list" class="submenu-item">펫시터 조회</router-link>
+          <router-link to="/home/petsitter/register" class="submenu-item">펫시터 등록</router-link>
+          <router-link to="/home/payment" class="submenu-item">결제내역조회</router-link>
+        </div>
       </div>
-      <div class="submenu" v-show="openMenus.petSitter">
-        <router-link to="/home/petsitter/list" class="submenu-item">펫시터 조회</router-link>
-        <router-link to="/home/petsitter/register" class="submenu-item">펫시터 등록</router-link>
-        <router-link to="/home/petsitter/edit" class="submenu-item">펫시터 수정</router-link>
+
+      <!-- 🔹 코드 관리 -->
+
+      <div class="menu-group">
+        <div class="menu-title" @click="goToManagement">코드 관리</div>
       </div>
+
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useUserStore } from '@/stores/userStore';
 
 const router = useRouter();
+const userStore = useUserStore(); // ✅ 사용자 상태 접근
 
 const openMenus = ref({
   petManagement: false,
@@ -44,12 +59,22 @@ const toggleMenu = (menuName) => {
   openMenus.value[menuName] = !openMenus.value[menuName];
 };
 
+// ✅ 로그인 상태 확인 (userId가 존재하는지 체크)
+const isLoggedIn = computed(() => !!userStore.userId);
+
 // 반려동물 용품 페이지로 이동
 const goToProduct = () => {
   router.push('/home/products');
 };
 
+const goToManagement = () => {
+  router.push('/home/codeManagement');
+};
+
+
 </script>
+
+
 
 
 

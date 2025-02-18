@@ -5,9 +5,9 @@
       <h1 :class="{ 'show': showFirstLine }">만들어주세요!</h1>
     </div>
 
-    <form @submit.prevent="handleSubmit" class="profile-form">
+    <form @submit.prevent="createProfile" class="profile-form">
       <div class="image-upload-section">
-        <div class="image-preview" 
+        <div class="image-preview"
              :style="previewImage ? { backgroundImage: `url(${previewImage})` } : {}"
              @click="triggerImageUpload">
           <span v-if="!previewImage">사진을 업로드해주세요</span>
@@ -43,102 +43,113 @@
       </div>
 
       <div class="input-group">
-        <label>품종</label>
+        <label>종류</label>
         <input 
           type="text" 
-          v-model="petInfo.breed"
-          placeholder="반려동물의 품종을 입력하세요"
+          v-model="petInfo.type"
+          placeholder="반려동물의 종류를 입력하세요"
         >
       </div>
 
       <div class="bottom-section">
-        <button :class="{ 'show': showButton }" @click="createProfile" class="start-button">
+        <button :class="{ 'show': showButton }" type="submit" class="start-button">
           프로필 만들기
         </button>
       </div>
     </form>
-
-
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted} from 'vue';
+import { useRouter } from 'vue-router';
+import api from '@/api/axios'; // ✅ Axios 사용
+import { useUserStore } from '@/stores/userStore';
+import { computed } from 'vue';
 
-const router = useRouter()
-const showFirstLine = ref(false)
-const showButton = ref(false)
-const previewImage = ref(null)
-const fileInput = ref(null)
+
+const router = useRouter();
+const userStore = useUserStore();
+const userId = computed(() => userStore.userId);
+
+const showFirstLine = ref(false);
+const showButton = ref(false);
+const previewImage = ref('https://flexible.img.hani.co.kr/flexible/normal/970/777/imgdb/resize/2019/0926/00501881_20190926.webp');
+const fileInput = ref(null);
 
 const petInfo = ref({
-  name: '',
-  age: '',
-  breed: '',
-  image: null
-})
-
-const showSuccess = ref(false)
-const showMessage = ref(false)
-const showCard = ref(false)
-const showFireworks = ref(false)
-const showSuccessButton = ref(false)
-
-const petName = ref('')
-const petAge = ref('')
-const petBreed = ref('')
+  name: '얌얌', // ✅ 디폴트 이름
+  age: 12, // ✅ 디폴트 나이
+  type: '고양이', // ✅ 디폴트 종류
+  image: previewImage.value // ✅ 디폴트 이미지
+});
 
 const triggerImageUpload = () => {
-  fileInput.value.click()
-}
+  fileInput.value.click();
+};
 
 const handleImageChange = (event) => {
-  const file = event.target.files[0]
+  const file = event.target.files[0];
   if (file) {
-    const reader = new FileReader()
+    const reader = new FileReader();
     reader.onload = (e) => {
-      previewImage.value = e.target.result
-      petInfo.value.image = file
+      previewImage.value = e.target.result;
+      petInfo.value.image = file; // ✅ 이미지 파일 저장
+    };
+    reader.readAsDataURL(file);
+  }
+};
+
+const createProfile = async () => {
+  if (!petInfo.value.name || !petInfo.value.age || !petInfo.value.type) {
+    alert('모든 정보를 입력해주세요!');
+    return;
+  }
+
+  // JSON 데이터로 변환
+  const requestData = {
+    name: petInfo.value.name,
+    age: petInfo.value.age,
+    type: petInfo.value.type,
+    imageUrl: previewImage.value
+  };
+
+  try {
+    const response = await api.post(`/users/${userId.value}/pet-profile`, requestData, {
+  headers: {
+    'Content-Type': 'application/json',
+  }
+});
+
+
+    if (response.data.status) {
+      console.log('프로필 생성 성공:', response.data);
+      if (userStore.userId && userStore.name) {
+        router.push('/home');
+      } 
+      else if (userStore.userId) {
+        router.push('/');
+  }
+    } else {
+      alert('프로필 생성 실패');
     }
-    reader.readAsDataURL(file)
+  } catch (error) {
+    console.error('프로필 생성 오류:', error);
+    console.log(userStore.userId)
+    alert('서버 오류');
   }
-}
+};
 
-const handleSubmit = () => {
-  // 여기에 서버로 데이터를 전송하는 로직을 추가하세요
-  console.log('제출된 펫 정보:', petInfo.value)
-  // 제출 후 다음 페이지로 이동
-  router.push('/home')
-}
-
-const createProfile = () => {
-  if (!petInfo.value.name || !petInfo.value.age || !petInfo.value.breed) {
-    alert('모든 정보를 입력해주세요!')
-    return
-  }
-
-  showSuccessScreen()
-}
-
-const showSuccessScreen = () => {
-  showSuccess.value = true
-  setTimeout(() => { showMessage.value = true }, 500)
-  setTimeout(() => { showCard.value = true }, 1000)
-  setTimeout(() => { showFireworks.value = true }, 1500)
-  setTimeout(() => { showSuccessButton.value = true }, 2500)
-
-  petName.value = petInfo.value.name
-  petAge.value = petInfo.value.age
-  petBreed.value = petInfo.value.breed
-}
 
 
 onMounted(() => {
-  setTimeout(() => { showFirstLine.value = true }, 500)
-  setTimeout(() => { showButton.value = true }, 1000)
-})
+  setTimeout(() => { showFirstLine.value = true; }, 500);
+  setTimeout(() => { showButton.value = true; }, 1000);
+});
 </script>
+
+
+
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Nanum+Square+Round:wght@400;700&display=swap');

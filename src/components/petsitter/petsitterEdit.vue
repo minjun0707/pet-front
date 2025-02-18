@@ -1,7 +1,7 @@
 <template>
-  <div class="petsitter-edit">
-    <h2>펫시터 프로필 수정</h2>
-    <form @submit.prevent="handleSubmit" class="edit-form">
+  <div class="petsitter-register">
+    <h2>펫시터 프로필 등록</h2>
+    <form @submit.prevent="handleSubmit" class="register-form">
       <div class="form-group">
         <label>활동 가능 지역</label>
         <div class="location-select">
@@ -44,7 +44,7 @@
           <button 
             v-for="pet in petExamples" 
             :key="pet" 
-            @click.prevent="addExamplePet(pet)"
+            @click="addExamplePet(pet)"
             class="example-btn"
           >
             {{ pet }}
@@ -172,36 +172,37 @@
         />
       </div>
 
-      <div class="button-group">
-        <button type="submit" class="edit-btn">수정하기</button>
-        <button type="button" class="delete-btn" @click="handleDelete">
-          <span class="delete-icon">⚠️</span>
-          삭제하기
-        </button>
-      </div>
+      <button type="submit" class="submit-btn">등록하기</button>
     </form>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch ,computed, onMounted} from 'vue';
 import { useRouter } from 'vue-router';
 import Datepicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
+import { useUserStore } from '@/stores/userStore';
+import api from '@/api/axios';
 
+const userStore = useUserStore();
 const router = useRouter();
 const newPetType = ref('');
-const selectedCity = ref('');
-const selectedDistrict = ref('');
+
+const selectedCity = ref('서울특별시'); // 기본값: 서울특별시
+const selectedDistrict = ref('강남구'); // 기본값: 강남구
+
+
+
 
 const days = [
-  { value: 'MON', label: '월' },
-  { value: 'TUE', label: '화' },
-  { value: 'WED', label: '수' },
-  { value: 'THU', label: '목' },
-  { value: 'FRI', label: '금' },
-  { value: 'SAT', label: '토' },
-  { value: 'SUN', label: '일' }
+  { value: 'MONDAY', label: '월' },
+  { value: 'TUESDAY', label: '화' },
+  { value: 'WEDNESDAY', label: '수' },
+  { value: 'THURSDAY', label: '목' },
+  { value: 'FRIDAY', label: '금' },
+  { value: 'SATURDAY', label: '토' },
+  { value: 'SUNDAY', label: '일' }
 ];
 
 // 도시와 구 데이터
@@ -216,11 +217,13 @@ const districts = {
 // 반려동물 예시 데이터
 const petExamples = ['고양이', '강아지', '말티즈', '페르시안 고양이', '사자'];
 
+
+
 const form = ref({
   location: '',
   petTypes: [],
   availableDays: [],
-  hourlyRate: '',
+  hourlyRate: '20000',
   startDate: null,
   endDate: null,
   startTime: 9,    // 기본값 9시
@@ -228,6 +231,8 @@ const form = ref({
   startMinute: 0,  // 추가: 시작 분
   endMinute: 0     // 추가: 종료 분
 });
+
+
 
 // 지역이 선택될 때마다 form.location 업데이트
 watch([selectedCity, selectedDistrict], ([city, district]) => {
@@ -237,6 +242,8 @@ watch([selectedCity, selectedDistrict], ([city, district]) => {
     form.value.location = '';
   }
 });
+
+
 
 // 태그 색상 배열 추가
 const tagColors = [
@@ -349,9 +356,9 @@ const loadPetsitterProfile = () => {
       { name: '시츄', color: getRandomColor() },
       { name: '토이푸들', color: getRandomColor() }
     ],
-    availableDays: ['MON', 'WED', 'FRI'],
-    startDate: new Date('2024-03-01'),
-    endDate: new Date('2024-04-30'),
+    availableDays: ['MONDAY', 'WEDNESDAY', 'FRIDAY'],
+    startDate: '2024-03-01',
+    endDate: '2024-04-30',
     startTime: 9,
     endTime: 18,
     startMinute: 0,
@@ -368,7 +375,8 @@ const loadPetsitterProfile = () => {
   selectedDistrict.value = district;
 };
 
-const handleSubmit = () => {
+
+const handleSubmit = async () => {
   if (form.value.petTypes.length === 0) {
     alert('최소 한 개 이상의 반려동물 종류를 입력해주세요.');
     return;
@@ -379,26 +387,50 @@ const handleSubmit = () => {
     return;
   }
 
-  console.log('수정된 정보:', form.value);
-  router.push('/petsitter/list');
+  const requestData = {
+    city: form.value.location,
+    availablePets: form.value.petTypes.map(pet => pet.name),
+    startDate: form.value.startDate ? form.value.startDate.toISOString().split('T')[0] : null,
+    endDate: form.value.endDate ? form.value.endDate.toISOString().split('T')[0] : null,
+    availableDays: form.value.availableDays, // ['MON', 'WED', 'THU' ...]
+    startTime: form.value.startTime,
+    endTime: form.value.endTime,
+    hourlyRate: form.value.hourlyRate
 };
 
-const handleDelete = () => {
-  if (confirm('정말로 삭제하시겠습니까?')) {
-    // API 호출로 삭제 처리
-    console.log('프로필 삭제됨');
-    router.push('/petsitter/list');
+
+
+  const userId = computed(() => userStore.userId);
+
+  try {
+    const response = await api.post(`/users/pet-sitter/${userId.value}`, requestData);
+
+    if (response.data) {
+      console.log('등록 성공:', response.data);
+      alert('펫시터 프로필이 성공적으로 등록되었습니다!');
+      router.push('/home/petsitter/list'); // 등록 후 리스트 페이지로 이동
+    } else {
+      const error = await response.json();
+      console.error('등록 실패:', error);
+      alert('등록에 실패했습니다. 다시 시도해주세요.');
+    }
+  } catch (error) {
+    console.log(requestData);
+    console.error('서버 요청 중 오류 발생:', error);
+    alert('서버 오류가 발생했습니다.');
   }
 };
 
 onMounted(() => {
   loadPetsitterProfile();
 });
+
 </script>
 
 <style scoped>
-.petsitter-edit {
-  max-width: 800px;
+
+.petsitter-register {
+  width: 800px;
   margin: 0 auto;
   padding: 20px;
 }
@@ -408,7 +440,7 @@ h2 {
   margin-bottom: 30px;
 }
 
-.edit-form {
+.register-form {
   background: white;
   padding: 30px;
   border-radius: 12px;
@@ -497,45 +529,20 @@ input, textarea {
   background-color: var(--color-accent1);
 }
 
-.edit-btn, .delete-btn {
-  flex: 1;
+.submit-btn {
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
   padding: 12px 24px;
   border-radius: 8px;
   cursor: pointer;
   font-weight: 500;
-  border: none;
-  transition: all 0.3s ease;
-  width: 50%;
-  height: 48px;
-  font-size: 16px;
+  width: 100%;
+  margin-top: 20px;
 }
 
-.edit-btn {
-  background-color: var(--color-primary);
-  color: white;
-}
-
-.edit-btn:hover {
+.submit-btn:hover {
   background-color: var(--color-accent1);
-}
-
-.delete-btn {
-  background-color: white;
-  border: 2px solid #ff4d4d;
-  color: #ff4d4d;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.delete-btn:hover {
-  background-color: #ff4d4d;
-  color: white;
-}
-
-.delete-icon {
-  font-size: 16px;
 }
 
 .pet-type-input {
@@ -669,7 +676,6 @@ input, textarea {
   padding: 2px 8px;
   margin: 0 4px;
   font-size: 14px;
-  user-select: none;
 }
 
 .example-btn:hover {
@@ -906,11 +912,5 @@ input, textarea {
   color: var(--color-secondary);
   font-size: 14px;
   font-weight: 500;
-}
-
-.button-group {
-  display: flex;
-  gap: 10px;
-  margin-top: 20px;
 }
 </style> 

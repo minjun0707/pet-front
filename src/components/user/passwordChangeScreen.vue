@@ -9,15 +9,6 @@
     <!-- 입력 필드 -->
     <div class="input-section">
       <div class="input-group">
-        <label>현재 비밀번호</label>
-        <input 
-          type="password" 
-          v-model="currentPassword" 
-          placeholder="현재 비밀번호를 입력하세요" 
-          class="input-field" 
-        />
-      </div>
-      <div class="input-group">
         <label>새 비밀번호</label>
         <input 
           type="password" 
@@ -47,17 +38,22 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useUserStore } from '@/stores/userStore';
+import api from '@/api/axios';
 
 const router = useRouter();
+const userStore = useUserStore();
 
-// 애니메이션을 위한 변수
+// ✅ 상태관리에서 userId 가져오기
+const userId = computed(() => userStore.userId);
+
+// ✅ 애니메이션 변수
 const showFirstLine = ref(false);
 const showButton = ref(false);
 
-// 사용자 입력 데이터
-const currentPassword = ref('');
+// ✅ 사용자 입력 데이터
 const newPassword = ref('');
 const confirmPassword = ref('');
 
@@ -66,8 +62,9 @@ onMounted(() => {
   setTimeout(() => { showButton.value = true; }, 3000);
 });
 
+// ✅ 비밀번호 변경 요청 (PUT)
 const changePassword = async () => {
-  if (!currentPassword.value || !newPassword.value || !confirmPassword.value) {
+  if (!newPassword.value || !confirmPassword.value) {
     alert("모든 필드를 입력하세요!");
     return;
   }
@@ -78,18 +75,24 @@ const changePassword = async () => {
   }
 
   try {
-    // TODO: API 호출하여 비밀번호 변경
-    console.log('비밀번호 변경:', {
-      currentPassword: currentPassword.value,
-      newPassword: newPassword.value
-    });
-    
-    alert("비밀번호가 성공적으로 변경되었습니다.");
-    router.push('/edit-profile');
+    console.log("전송할 비밀번호:", newPassword.value);
+
+    const response = await api.put(
+      `/users/password/${userId.value}`,
+      { password: newPassword.value }, 
+      { headers: { "Content-Type": "application/json" } } // ✅ 명확한 JSON 설정
+    );
+
+    if (response.data) {
+      alert("비밀번호가 성공적으로 변경되었습니다.");
+      router.push('/home'); // ✅ 비밀번호 변경 후 홈으로 이동
+    }
   } catch (error) {
+    console.error("비밀번호 변경 실패:", error);
     alert("비밀번호 변경 중 오류가 발생했습니다.");
   }
 };
+
 </script>
 
 <style scoped>
@@ -189,4 +192,4 @@ h1.show {
   background-color: var(--color-secondary);
   transform: scale(0.98);
 }
-</style> 
+</style>

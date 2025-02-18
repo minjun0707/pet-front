@@ -6,11 +6,6 @@
       <h1 :class="{ 'show': showFirstLine }">수정해주세요!</h1>
     </div>
 
-    <!-- 반려동물 아이콘 이미지 -->
-    <div class="pet-icon" :class="{ 'show': showFirstLine }">
-      <img src="@/assets/images/pet-icon.png" alt="강아지와 고양이 아이콘" />
-    </div>
-
     <!-- 입력 필드 -->
     <div class="input-section">
       <div class="input-group">
@@ -40,18 +35,24 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useUserStore } from '@/stores/userStore';
+import api from '@/api/axios';
 
 const router = useRouter();
+const userStore = useUserStore();
 
-// 애니메이션을 위한 변수
+// ✅ 상태관리에서 userId 가져오기
+const userId = computed(() => userStore.userId);
+
+// ✅ 애니메이션 변수
 const showFirstLine = ref(false);
 const showButton = ref(false);
 const showLogin = ref(false);
 
-// 사용자 입력 데이터
-const email = ref('user@example.com'); // 실제로는 현재 로그인된 사용자의 이메일
+// ✅ 사용자 입력 데이터
+const email = ref('');
 const name = ref('');
 const phone = ref('');
 
@@ -60,18 +61,31 @@ onMounted(() => {
   setTimeout(() => { showFirstLine.value = true; }, 1000);
   setTimeout(() => { showButton.value = true; }, 3000);
   setTimeout(() => { showLogin.value = true; }, 3500);
-  
-  // TODO: 현재 사용자 정보 불러오기
+
+  // ✅ 사용자 정보 불러오기
   loadUserInfo();
 });
 
+// ✅ GET 요청: 사용자 정보 가져오기
 const loadUserInfo = async () => {
-  // TODO: API에서 현재 사용자 정보를 가져와서 설정
-  // 임시 데이터
-  name.value = '홍길동';
-  phone.value = '010-1234-5678';
+  try {
+    if (!userId.value) {
+      console.error("사용자 ID가 없습니다!");
+      return;
+    }
+    
+    const response = await api.get(`/users/${userId.value}`);
+    if (response.data) {
+      email.value = response.data.result.data.email;
+      name.value = response.data.result.data.name;
+      phone.value = response.data.result.data.phoneNumber;
+    }
+  } catch (error) {
+    console.error("사용자 정보 불러오기 실패:", error);
+  }
 };
 
+// ✅ PUT 요청: 사용자 정보 수정
 const updateProfile = async () => {
   if (!name.value || !phone.value) {
     alert("모든 필드를 입력하세요!");
@@ -79,18 +93,25 @@ const updateProfile = async () => {
   }
 
   try {
-    // TODO: API 호출하여 프로필 업데이트
-    console.log('업데이트할 정보:', {
+    const updateData = {
+      email: email.value,  // 이메일은 수정 불가 (백엔드 DTO 규칙)
       name: name.value,
-      phone: phone.value
-    });
+      phoneNumber: phone.value
+    };
+
+    const response = await api.put(`/users/${userId.value}`, updateData);
     
-    alert("회원정보가 성공적으로 수정되었습니다.");
+    if (response.data) {
+      alert("회원정보가 성공적으로 수정되었습니다.");
+      router.push('/home'); // ✅ 수정 후 홈 화면으로 이동
+    }
   } catch (error) {
+    console.error("회원정보 수정 실패:", error);
     alert("회원정보 수정 중 오류가 발생했습니다.");
   }
 };
 
+// ✅ 비밀번호 변경 페이지 이동
 const goToPasswordChange = () => {
   router.push('/password-change');
 };
@@ -111,7 +132,7 @@ body {
   font-family: 'Nanum Square Round', sans-serif;
 }
 
-/* 기존 스타일 유지 */
+/* 기본 레이아웃 */
 .welcome-screen {
   width: 400px;
   height: 800px;
@@ -144,26 +165,6 @@ h1 {
 h1.show {
   opacity: 1;
   transform: translateY(0);
-}
-
-/* 반려동물 아이콘 이미지 */
-.pet-icon {
-  width: 100%;
-  text-align: center;
-  margin: 20px 0 30px;
-  opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.8s ease, transform 0.8s ease;
-}
-
-.pet-icon.show {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.pet-icon img {
-  width: 200px;
-  height: auto;
 }
 
 /* 입력 필드 */
@@ -205,13 +206,12 @@ h1.show {
   cursor: not-allowed;
 }
 
-/* 하단 버튼 및 비밀번호 변경 링크 */
+/* 하단 버튼 */
 .bottom-section {
   margin-top: auto;
   padding-top: 20px;
 }
 
-/* 버튼 스타일 */
 .start-button {
   width: 100%;
   padding: 15px 0;
@@ -233,18 +233,6 @@ h1.show {
   transform: scale(1);
 }
 
-/* 애니메이션 키프레임 */
-@keyframes fadeInButton {
-  0% {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
 .start-button:hover {
   background-color: var(--color-accent1);
   transform: scale(1.05);
@@ -255,6 +243,7 @@ h1.show {
   transform: scale(0.98);
 }
 
+/* 비밀번호 변경 링크 */
 .password-change-link {
   margin-top: 20px;
   text-align: center;
@@ -272,4 +261,4 @@ h1.show {
   color: var(--color-primary);
   text-decoration: underline;
 }
-</style> 
+</style>

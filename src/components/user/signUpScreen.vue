@@ -27,34 +27,33 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import api from '@/api/axios'; // axios 인터셉터 사용
+import { useUserStore } from '@/stores/userStore';
 
 const router = useRouter();
+const userStore = useUserStore(); // Pinia 상태 사용
 
-// 애니메이션을 위한 변수
-const showFirstLine = ref(false);
-const showButton = ref(false);
-const showLogin = ref(false);
+// 입력 값 (✅ 기본값 설정 추가)
+const email = ref('kt2025@kt.com');
+const password = ref('kt2025@@');
+const confirmPassword = ref('kt2025@@'); // 비밀번호 확인도 기본값 동일하게
+const name = ref('김민준');
+const phone = ref('01012345678');
 
-// 사용자 입력 데이터
-const email = ref('');
-const password = ref('');
-const confirmPassword = ref('');
-const name = ref('');
-const phone = ref('');
+const showFirstLine = ref(false); // ✅ 헤더 텍스트 애니메이션 상태
+const showButton = ref(false); // ✅ 버튼 애니메이션 상태
 
 onMounted(() => {
-  setTimeout(() => { showFirstLine.value = true; }, 1000);
-  setTimeout(() => { showButton.value = true; }, 3000);
-  setTimeout(() => { showLogin.value = true; }, 3500);
+  setTimeout(() => {
+    showFirstLine.value = true;
+  }, 500); // ✅ 애니메이션 지연 효과
+
+  setTimeout(() => {
+    showButton.value = true;
+  }, 1000); // ✅ 버튼 애니메이션 지연 효과
 });
 
-const signUp = () => {
-  console.log('이메일:', email.value);
-  console.log('비밀번호:', password.value);
-  console.log('비밀번호 확인:', confirmPassword.value);
-  console.log('이름:', name.value);
-  console.log('연락처:', phone.value);
-  
+const signUp = async () => {
   if (!email.value || !password.value || !confirmPassword.value || !name.value || !phone.value) {
     alert("모든 필드를 입력하세요!");
     return;
@@ -63,11 +62,37 @@ const signUp = () => {
     alert("비밀번호가 일치하지 않습니다!");
     return;
   }
-  router.push('/petProfile'); // 회원가입 성공 페이지로 이동
+
+  try { 
+    const response = await api.post('/users/sign-up', {
+      email: email.value,
+      password: password.value,
+      name: name.value,
+      phoneNumber: phone.value,
+    });
+
+    if (response.data.status) {
+      // ✅ userId 저장
+      const userId = response.data.result.data.userId;
+  
+      // ✅ Pinia 상태 저장
+      userStore.setUser(String(userId)); 
+
+      console.log('회원가입 성공:', userId);
+
+      // ✅ 반려동물 프로필 입력 화면으로 이동
+      router.push('/petProfile');
+    } else {
+      alert('회원가입 실패');
+    }
+  } catch (error) {
+    console.error('회원가입 오류:', error);
+    alert('서버 오류');
+  }
 };
-
-
 </script>
+
+
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Nanum+Square+Round:wght@400;700&display=swap');

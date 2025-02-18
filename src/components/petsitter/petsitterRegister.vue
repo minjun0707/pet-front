@@ -178,24 +178,31 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch ,computed} from 'vue';
 import { useRouter } from 'vue-router';
 import Datepicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
+import { useUserStore } from '@/stores/userStore';
+import api from '@/api/axios';
 
+const userStore = useUserStore();
 const router = useRouter();
 const newPetType = ref('');
-const selectedCity = ref('');
-const selectedDistrict = ref('');
+
+const selectedCity = ref('서울특별시'); // 기본값: 서울특별시
+const selectedDistrict = ref('강남구'); // 기본값: 강남구
+
+
+
 
 const days = [
-  { value: 'MON', label: '월' },
-  { value: 'TUE', label: '화' },
-  { value: 'WED', label: '수' },
-  { value: 'THU', label: '목' },
-  { value: 'FRI', label: '금' },
-  { value: 'SAT', label: '토' },
-  { value: 'SUN', label: '일' }
+  { value: 'MONDAY', label: '월' },
+  { value: 'TUESDAY', label: '화' },
+  { value: 'WEDNESDAY', label: '수' },
+  { value: 'THURSDAY', label: '목' },
+  { value: 'FRIDAY', label: '금' },
+  { value: 'SATURDAY', label: '토' },
+  { value: 'SUNDAY', label: '일' }
 ];
 
 // 도시와 구 데이터
@@ -210,11 +217,13 @@ const districts = {
 // 반려동물 예시 데이터
 const petExamples = ['고양이', '강아지', '말티즈', '페르시안 고양이', '사자'];
 
+
+
 const form = ref({
   location: '',
   petTypes: [],
   availableDays: [],
-  hourlyRate: '',
+  hourlyRate: '20000',
   startDate: null,
   endDate: null,
   startTime: 9,    // 기본값 9시
@@ -222,6 +231,8 @@ const form = ref({
   startMinute: 0,  // 추가: 시작 분
   endMinute: 0     // 추가: 종료 분
 });
+
+
 
 // 지역이 선택될 때마다 form.location 업데이트
 watch([selectedCity, selectedDistrict], ([city, district]) => {
@@ -231,6 +242,8 @@ watch([selectedCity, selectedDistrict], ([city, district]) => {
     form.value.location = '';
   }
 });
+
+
 
 // 태그 색상 배열 추가
 const tagColors = [
@@ -334,7 +347,7 @@ const handleDrag = (e) => {
   }
 };
 
-const handleSubmit = () => {
+const handleSubmit = async () => {
   if (form.value.petTypes.length === 0) {
     alert('최소 한 개 이상의 반려동물 종류를 입력해주세요.');
     return;
@@ -345,9 +358,40 @@ const handleSubmit = () => {
     return;
   }
 
-  console.log('등록된 정보:', form.value);
-  router.push('/petsitter/list');
+  const requestData = {
+    city: form.value.location,
+    availablePets: form.value.petTypes.map(pet => pet.name),
+    startDate: form.value.startDate ? form.value.startDate.toISOString().split('T')[0] : null,
+    endDate: form.value.endDate ? form.value.endDate.toISOString().split('T')[0] : null,
+    availableDays: form.value.availableDays, // ['MON', 'WED', 'THU' ...]
+    startTime: form.value.startTime,
+    endTime: form.value.endTime,
+    hourlyRate: form.value.hourlyRate
 };
+
+
+
+  const userId = computed(() => userStore.userId);
+
+  try {
+    const response = await api.post(`/users/pet-sitter/${userId.value}`, requestData);
+
+    if (response.data) {
+      console.log('등록 성공:', response.data);
+      alert('펫시터 프로필이 성공적으로 등록되었습니다!');
+      router.push('/home/petsitter/list'); // 등록 후 리스트 페이지로 이동
+    } else {
+      const error = await response.json();
+      console.error('등록 실패:', error);
+      alert('등록에 실패했습니다. 다시 시도해주세요.');
+    }
+  } catch (error) {
+    console.log(requestData);
+    console.error('서버 요청 중 오류 발생:', error);
+    alert('서버 오류가 발생했습니다.');
+  }
+};
+
 </script>
 
 <style scoped>
@@ -356,7 +400,6 @@ const handleSubmit = () => {
   width: 800px;
   margin: 0 auto;
   padding: 20px;
-  
 }
 
 h2 {
